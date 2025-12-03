@@ -1,0 +1,760 @@
+@startuml RED_DiagramaClases_Completo_POO
+
+' ============================================
+' CONFIGURACIÓN DE ESTILOS
+' ============================================
+skinparam classAttributeIconSize 0
+skinparam shadowing true
+skinparam roundcorner 10
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 80
+
+' Colores para diferentes tipos de clases
+skinparam class {
+    BackgroundColor<<Entidad>> #E3F2FD
+    BorderColor<<Entidad>> #1976D2
+    
+    BackgroundColor<<Usuario>> #C8E6C9
+    BorderColor<<Usuario>> #388E3C
+    
+    BackgroundColor<<Producto>> #FFF9C4
+    BorderColor<<Producto>> #F57F17
+    
+    BackgroundColor<<Pedido>> #FFCCBC
+    BorderColor<<Pedido>> #E64A19
+    
+    BackgroundColor<<Diseño>> #F3E5F5
+    BorderColor<<Diseño>> #7B1FA2
+    
+    BackgroundColor<<Enum>> #FFE0B2
+    BorderColor<<Enum>> #EF6C00
+    
+    BackgroundColor<<3D>> #B2DFDB
+    BorderColor<<3D>> #00796B
+}
+
+skinparam object {
+    BackgroundColor #E8F5E9
+    BorderColor #2E7D32
+    FontColor #1B5E20
+}
+
+skinparam arrow {
+    Color #424242
+    Thickness 2
+}
+
+title **Proyecto RED - Diagrama de Clases POO Completo**\nSENA ADSO - Ficha 3147208\n**Incluye: Herencia, Encapsulamiento, Polimorfismo, Composición, Agregación, Objetos**
+
+' ============================================
+' MÓDULO: GESTIÓN DE USUARIOS (HERENCIA Y POLIMORFISMO)
+' ============================================
+package "Gestión de Usuarios (HERENCIA)" #FAFAFA {
+    
+    ' Clase abstracta Usuario (PADRE) - HERENCIA
+    abstract class Usuario <<Usuario>> {
+        ' ATRIBUTOS PRIVADOS (Encapsulamiento)
+        - _id : int
+        - _usuario : String
+        - _correo : String
+        - _contrasena : String
+        - _estado : EstadoUsuario
+        - _fecha_registro : DateTime
+        - _email_verificado : boolean
+        - _intentos_fallidos : int
+        
+        ' CONSTRUCTOR
+        + Usuario(usuario, correo, contrasena)
+        
+        ' MÉTODOS PÚBLICOS
+        + autenticar(correo: String, pass: String) : boolean
+        + actualizar_perfil(datos: dict) : void
+        + cambiar_contrasena(antigua: String, nueva: String) : boolean
+        + verificar_email(token: String) : boolean
+        + bloquear() : void
+        + desbloquear() : void
+        
+        ' MÉTODOS PROTEGIDOS (para subclases)
+        # _validar_contrasena(pass: String) : boolean
+        # _hashear_contrasena(pass: String) : String
+        
+        ' MÉTODO ABSTRACTO (POLIMORFISMO)
+        + {abstract} obtener_permisos() : List<String>
+        + {abstract} mostrar_dashboard() : void
+    }
+    
+    ' SUBCLASE: Administrador (HERENCIA)
+    class Administrador <<Usuario>> {
+        - _nivel_acceso : int
+        
+        + Administrador(usuario, correo, contrasena)
+        + crear_producto(datos: dict) : Producto
+        + aprobar_producto(producto: Producto) : void
+        + gestionar_usuarios() : void
+        + generar_reportes() : Reporte
+        
+        ' POLIMORFISMO - Implementación específica
+        + obtener_permisos() : List<String>
+        + mostrar_dashboard() : void
+    }
+    
+    ' SUBCLASE: Revisor (HERENCIA)
+    class Revisor <<Usuario>> {
+        - _especialidad : String
+        - _disenos_revisados : int
+        
+        + Revisor(usuario, correo, contrasena, especialidad)
+        + ver_disenos_pendientes() : List<Diseno>
+        + aprobar_diseno(diseno: Diseno, comentarios: String) : void
+        + rechazar_diseno(diseno: Diseno, motivo: String) : void
+        
+        ' POLIMORFISMO
+        + obtener_permisos() : List<String>
+        + mostrar_dashboard() : void
+    }
+    
+    ' SUBCLASE: Cliente (HERENCIA)
+    class Cliente <<Usuario>> {
+        - _puntos_acumulados : int
+        - _historial_compras : List<Pedido>
+        
+        + Cliente(usuario, correo, contrasena)
+        + realizar_compra(carrito: Carrito) : Pedido
+        + agregar_al_carrito(producto: Producto, cantidad: int) : void
+        + calificar_producto(producto: Producto, estrellas: int) : void
+        + ver_historial_compras() : List<Pedido>
+        
+        ' POLIMORFISMO
+        + obtener_permisos() : List<String>
+        + mostrar_dashboard() : void
+    }
+    
+    ' ENUM para estados
+    enum EstadoUsuario <<Enum>> {
+        ACTIVO
+        INACTIVO
+        BLOQUEADO
+    }
+    
+    ' Clase de apoyo para autenticación
+    class Sesion <<Entidad>> {
+        - _id : int
+        - _token : String
+        - _fecha_inicio : DateTime
+        - _fecha_expiracion : DateTime
+        - _ip_address : String
+        - _activa : boolean
+        
+        + Sesion(usuario: Usuario)
+        + validar() : boolean
+        + renovar() : void
+        + cerrar() : void
+    }
+}
+
+' ============================================
+' MÓDULO: GESTIÓN DE PRODUCTOS (COMPOSICIÓN)
+' ============================================
+package "Gestión de Productos (COMPOSICIÓN)" #FAFAFA {
+    
+    ' Clase principal Producto
+    class Producto <<Producto>> {
+        ' ATRIBUTOS PRIVADOS (Encapsulamiento)
+        - _id : int
+        - _nombre : String
+        - _descripcion : String
+        - _precio_base : Decimal
+        - _activo : boolean
+        - _aprobado : boolean
+        - _fecha_creacion : DateTime
+        - _usuario_creador_id : int
+        - _variantes : List<Variante>
+        - _imagenes : List<Imagen>
+        
+        ' CONSTRUCTOR
+        + Producto(id, nombre, descripcion, precio_base)
+        
+        ' MÉTODOS PÚBLICOS
+        + agregar_variante(talla: String, color: String, stock: int) : Variante
+        + agregar_imagen(ruta: String, es_principal: boolean) : Imagen
+        + calcular_precio_minimo() : Decimal
+        + stock_total() : int
+        + aprobar(usuario_aprobador_id: int) : void
+        + desaprobar(motivo: String) : void
+        + tiene_configuracion_minima() : boolean
+        + actualizar_info(nombre: String, descripcion: String, precio: Decimal) : void
+        
+        ' GETTERS (Properties)
+        + {property} id : int
+        + {property} nombre : String
+        + {property} precio_base : Decimal
+        + {property} variantes : List<Variante>
+        + {property} imagenes : List<Imagen>
+    }
+    
+    ' Clase Variante (COMPOSICIÓN con Producto)
+    class Variante <<Entidad>> {
+        - _id : int
+        - _producto_id : int
+        - _talla : TallaCamiseta
+        - _color_hex : String
+        - _color_nombre : String
+        - _stock : int
+        - _precio_variante : Decimal
+        
+        + Variante(id, producto_id, talla, color_hex, color_nombre, stock)
+        + precio_final(precio_base_producto: Decimal) : Decimal
+        + actualizar_stock(cantidad: int) : void
+        + reducir_stock(cantidad: int) : void
+        + validar_disponibilidad(cantidad_solicitada: int) : boolean
+        + obtener_info() : dict
+        
+        + {property} stock : int
+        + {property} talla : TallaCamiseta
+        + {property} color_hex : String
+    }
+    
+    ' Clase Imagen (COMPOSICIÓN con Producto)
+    class Imagen <<Entidad>> {
+        - _id : int
+        - _producto_id : int
+        - _ruta_imagen : String
+        - _alt_text : String
+        - _principal : boolean
+        - _orden : int
+        
+        + Imagen(id, producto_id, ruta, alt_text, principal, orden)
+        + marcar_como_principal() : void
+        + desmarcar_principal() : void
+        + obtener_info() : dict
+        
+        + {property} ruta_imagen : String
+        + {property} principal : boolean
+    }
+    
+    ' ENUM para tallas
+    enum TallaCamiseta <<Enum>> {
+        S
+        M
+        L
+        XL
+    }
+    
+    ' Clase Categoría (AGREGACIÓN)
+    class Categoria <<Entidad>> {
+        - _id : int
+        - _nombre : String
+        - _descripcion : String
+        - _activo : boolean
+        
+        + Categoria(id, nombre, descripcion)
+        + activar() : void
+        + desactivar() : void
+        + actualizar(nombre: String, descripcion: String) : void
+        
+        + {property} nombre : String
+        + {property} activo : boolean
+    }
+}
+
+' ============================================
+' MÓDULO: DISEÑOS (HERENCIA Y ABSTRACCIÓN)
+' ============================================
+package "Gestión de Diseños (ABSTRACCIÓN)" #FAFAFA {
+    
+    ' Clase abstracta Diseno
+    abstract class Diseno <<Diseño>> {
+        - _id : int
+        - _nombre : String
+        - _descripcion : String
+        - _ruta_archivo : String
+        - _formato : FormatoDiseno
+        - _fecha_creacion : DateTime
+        - _activo : boolean
+        
+        + Diseno(id, nombre, ruta_archivo)
+        + cargar() : void
+        + validar_formato() : boolean
+        + obtener_ruta() : String
+        
+        ' MÉTODO ABSTRACTO (POLIMORFISMO)
+        + {abstract} puede_ser_publicado() : boolean
+    }
+    
+    ' Diseño privado de un cliente
+    class DisenoPrivado <<Diseño>> {
+        - _usuario_id : int
+        
+        + DisenoPrivado(usuario_id, nombre, archivo)
+        + compartir_con(usuarios: List<Usuario>) : void
+        
+        ' POLIMORFISMO
+        + puede_ser_publicado() : boolean
+    }
+    
+    ' Diseño público en marketplace
+    class DisenoPublico <<Diseño>> {
+        - _aprobado : boolean
+        - _calificacion_promedio : float
+        - _precio_licencia : Decimal
+        
+        + DisenoPublico(disenador_id, nombre, archivo)
+        + publicar() : void
+        + aprobar(revisor: Revisor) : void
+        + rechazar(motivo: String) : void
+        + calcular_calificacion() : float
+        
+        ' POLIMORFISMO
+        + puede_ser_publicado() : boolean
+    }
+    
+    enum FormatoDiseno <<Enum>> {
+        PNG
+        JPG
+        SVG
+        PDF
+    }
+    
+    ' Calificación de diseños
+    class Calificacion <<Entidad>> {
+        - _id : int
+        - _estrellas : int
+        - _comentario : String
+        - _fecha : DateTime
+        
+        + Calificacion(usuario: Cliente, estrellas: int, comentario: String)
+        + editar(nuevas_estrellas: int, nuevo_comentario: String) : void
+        + validar() : boolean
+    }
+}
+
+' ============================================
+' MÓDULO: CARRITO Y PEDIDOS (COMPOSICIÓN)
+' ============================================
+package "Carrito y Pedidos (COMPOSICIÓN)" #FAFAFA {
+    
+    ' Carrito de compras
+    class Carrito <<Pedido>> {
+        - _id : int
+        - _usuario_id : int
+        - _fecha_creacion : DateTime
+        - _estado : EstadoCarrito
+        - _items : List<ItemCarrito>
+        
+        + Carrito(usuario_id: int)
+        + agregar_item(variante: Variante, cantidad: int) : ItemCarrito
+        + eliminar_item(item_id: int) : void
+        + vaciar() : void
+        + calcular_total() : Decimal
+        + convertir_a_pedido(datos_envio: DatosEnvio) : Pedido
+        
+        + {property} items : List<ItemCarrito>
+    }
+    
+    ' Item del carrito (COMPOSICIÓN)
+    class ItemCarrito <<Entidad>> {
+        - _id : int
+        - _carrito_id : int
+        - _variante_id : int
+        - _cantidad : int
+        - _precio_unitario : Decimal
+        
+        + ItemCarrito(carrito_id, variante: Variante, cantidad: int)
+        + calcular_subtotal() : Decimal
+        + modificar_cantidad(nueva_cantidad: int) : void
+        
+        + {property} cantidad : int
+        + {property} subtotal : Decimal
+    }
+    
+    enum EstadoCarrito <<Enum>> {
+        ACTIVO
+        PROCESADO
+        VACIO
+    }
+    
+    ' Pedido final
+    class Pedido <<Pedido>> {
+        - _id : int
+        - _usuario_id : int
+        - _numero_pedido : String
+        - _total : Decimal
+        - _fecha_pedido : DateTime
+        - _estado : EstadoPedido
+        - _items : List<ItemCarrito>
+        
+        + Pedido(usuario_id: int, carrito: Carrito)
+        + agregar_datos_envio(datos: DatosEnvio) : void
+        + calcular_total() : Decimal
+        + procesar_pago(metodo_pago: MetodoPago) : Transaccion
+        + cambiar_estado(nuevo_estado: EstadoPedido) : void
+        + generar_factura() : Factura
+    }
+    
+    enum EstadoPedido <<Enum>> {
+        PENDIENTE
+        PAGADO
+        PRODUCCION
+        ENVIADO
+        CANCELADO
+    }
+    
+    ' Datos de envío (VALUE OBJECT)
+    class DatosEnvio <<Entidad>> {
+        - _nombre : String
+        - _correo : String
+        - _telefono : String
+        - _direccion : String
+        - _ciudad : String
+        - _codigo_postal : String
+        
+        + DatosEnvio(nombre, direccion, ciudad)
+        + validar() : boolean
+    }
+    
+    enum MetodoPago <<Enum>> {
+        WOMPI
+        PAYPAL
+        TRANSFERENCIA
+    }
+    
+    ' Transacción de pago
+    class Transaccion <<Entidad>> {
+        - _id : int
+        - _pedido_id : int
+        - _referencia : String
+        - _estado : EstadoPago
+        - _valor_pagado : Decimal
+        - _fecha : DateTime
+        
+        + Transaccion(pedido: Pedido, metodo_pago: MetodoPago)
+        + procesar() : boolean
+        + confirmar() : void
+        + cancelar(motivo: String) : void
+    }
+    
+    enum EstadoPago <<Enum>> {
+        PENDIENTE
+        APROBADO
+        RECHAZADO
+    }
+    
+    ' Factura
+    class Factura <<Entidad>> {
+        - _id : int
+        - _pedido_id : int
+        - _fecha : DateTime
+        - _total_final : Decimal
+        
+        + Factura(pedido: Pedido)
+        + generar() : bytes
+    }
+}
+
+' ============================================
+' MÓDULO: EDITOR 3D
+' ============================================
+package "Editor 3D (COMPOSICIÓN)" #FAFAFA {
+    
+    ' Modelo 3D base
+    class Modelo3D <<3D>> {
+        - _id : int
+        - _producto_id : int
+        - _ruta_archivo : String
+        - _formato : Formato3D
+        - _estado_render : EstadoRender
+        
+        + Modelo3D(producto_id, ruta, formato)
+        + renderizar() : void
+        + aplicar_color(color: String) : void
+        + aplicar_textura(textura: String) : void
+        + rotar(x: float, y: float, z: float) : void
+        + zoom(nivel: float) : void
+        + exportar(formato: Formato3D) : String
+        + capturar_vista() : bytes
+    }
+    
+    enum Formato3D <<Enum>> {
+        GLTF
+        OBJ
+        FBX
+    }
+    
+    enum EstadoRender <<Enum>> {
+        PENDIENTE
+        RENDERIZANDO
+        COMPLETADO
+        ERROR
+    }
+    
+    ' Configuración de personalización
+    class Personalizacion <<3D>> {
+        - _id : int
+        - _nombre : String
+        - _colores : dict
+        - _imagenes : List<String>
+        - _textos : List<TextoPersonalizado>
+        - _fecha_creacion : DateTime
+        
+        + Personalizacion(nombre: String)
+        + agregar_color(parte: String, color: String) : void
+        + agregar_imagen(ruta: String, posicion: Posicion) : void
+        + agregar_texto(texto: TextoPersonalizado) : void
+        + guardar() : void
+        + restaurar() : void
+        + calcular_precio_adicional() : Decimal
+    }
+    
+    ' Texto personalizado (COMPOSICIÓN)
+    class TextoPersonalizado <<3D>> {
+        - _contenido : String
+        - _fuente : String
+        - _tamanio : int
+        - _color : String
+        - _posicion : Posicion
+        
+        + TextoPersonalizado(texto, fuente)
+        + aplicar_estilo(tamanio: int, color: String) : void
+    }
+    
+    ' Posición 3D
+    class Posicion <<3D>> {
+        - _x : float
+        - _y : float
+        - _z : float
+        
+        + Posicion(x, y, z)
+        + trasladar(dx: float, dy: float, dz: float) : void
+    }
+}
+
+' ============================================
+' RELACIONES DE HERENCIA (Líneas sólidas con triángulo)
+' ============================================
+Usuario <|-- Administrador : <<hereda>>
+Usuario <|-- Revisor : <<hereda>>
+Usuario <|-- Cliente : <<hereda>>
+
+Diseno <|-- DisenoPrivado : <<hereda>>
+Diseno <|-- DisenoPublico : <<hereda>>
+
+' ============================================
+' RELACIONES DE COMPOSICIÓN (Diamante negro)
+' ============================================
+Producto *-- "1..*" Variante : <<contiene>>
+Producto *-- "1..*" Imagen : <<tiene>>
+Carrito *-- "0..*" ItemCarrito : <<contiene>>
+Pedido *-- "1" DatosEnvio : <<requiere>>
+Pedido *-- "1..*" ItemCarrito : <<incluye>>
+Personalizacion *-- "0..*" TextoPersonalizado : <<compone>>
+TextoPersonalizado *-- "1" Posicion : <<ubica>>
+
+' ============================================
+' RELACIONES DE AGREGACIÓN (Diamante blanco)
+' ============================================
+Categoria o-- "0..*" Producto : <<agrupa>>
+Usuario o-- "1..*" Sesion : <<genera>>
+
+' ============================================
+' RELACIONES DE ASOCIACIÓN (Líneas simples)
+' ============================================
+Cliente "1" -- "1" Carrito : <<posee>>
+Cliente "1" -- "0..*" Pedido : <<realiza>>
+Cliente "1" -- "0..*" DisenoPrivado : <<crea>>
+Cliente "1" -- "0..*" Calificacion : <<escribe>>
+
+Administrador "1" -- "0..*" Producto : <<gestiona>>
+
+Revisor "1" -- "0..*" DisenoPublico : <<revisa>>
+
+Pedido "1" -- "1" Transaccion : <<genera>>
+Pedido "1" -- "0..1" Factura : <<genera>>
+
+ItemCarrito "1" -- "1" Variante : <<usa>>
+ItemCarrito "0..1" -- "0..1" Personalizacion : <<aplica>>
+
+Producto "1" -- "0..1" Modelo3D : <<visualiza>>
+Producto "0..1" -- "0..1" Diseno : <<aplica>>
+
+DisenoPublico "1" -- "0..*" Calificacion : <<recibe>>
+DisenoPublico "1" -- "1" Revisor : <<aprobado_por>>
+
+' ============================================
+' RELACIONES DE DEPENDENCIA (Líneas punteadas)
+' ============================================
+Carrito ..> Pedido : <<crea>>
+Usuario ..> EstadoUsuario : <<usa>>
+
+' ============================================
+' OBJETOS/INSTANCIAS (Lo que pidió la profesora)
+' ============================================
+
+object "admin1 : Administrador" as OBJ_ADMIN1 {
+    _id = 1
+    _usuario = "admin"
+    _correo = "admin@red.com"
+    _nivel_acceso = 10
+}
+
+object "cliente1 : Cliente" as OBJ_CLIENTE1 {
+    _id = 3
+    _usuario = "cliente1"
+    _correo = "cliente1@test.com"
+    _puntos_acumulados = 150
+}
+
+object "revisor1 : Revisor" as OBJ_REVISOR1 {
+    _id = 2
+    _usuario = "revisor"
+    _correo = "revisor@red.com"
+    _especialidad = "Diseño Gráfico"
+}
+
+object "producto1 : Producto" as OBJ_PROD1 {
+    _id = 1
+    _nombre = "Camiseta Básica Blanca"
+    _precio_base = 45000.00
+    _aprobado = true
+}
+
+object "variante1 : Variante" as OBJ_VAR1 {
+    _id = 1
+    _producto_id = 1
+    _talla = M
+    _color_nombre = "Blanco"
+    _stock = 75
+}
+
+object "imagen1 : Imagen" as OBJ_IMG1 {
+    _id = 1
+    _producto_id = 1
+    _ruta_imagen = "/images/camiseta-blanca.jpg"
+    _principal = true
+}
+
+object "carrito1 : Carrito" as OBJ_CARR1 {
+    _id = 1
+    _usuario_id = 3
+    _estado = ACTIVO
+}
+
+' Relaciones de instanciación (líneas punteadas)
+Administrador <.. OBJ_ADMIN1 : <<instancia>>
+Cliente <.. OBJ_CLIENTE1 : <<instancia>>
+Revisor <.. OBJ_REVISOR1 : <<instancia>>
+Producto <.. OBJ_PROD1 : <<instancia>>
+Variante <.. OBJ_VAR1 : <<instancia>>
+Imagen <.. OBJ_IMG1 : <<instancia>>
+Carrito <.. OBJ_CARR1 : <<instancia>>
+
+' ============================================
+' NOTAS EXPLICATIVAS (Lo que enseñó la profesora)
+' ============================================
+note right of Usuario
+  **HERENCIA Y POLIMORFISMO**
+  - Usuario es clase ABSTRACTA (padre)
+  - Método obtener_permisos() se 
+    implementa DIFERENTE en cada subclase
+  - Cliente: ['ver_catalogo', 'comprar']
+  - Admin: ['crear_producto', 'aprobar']
+  - Revisor: ['revisar_diseno']
+  
+  **Ejemplo del código:**
+  class Usuario(ABC):
+      @abstractmethod
+      def obtener_permisos(self):
+          pass
+  
+  class Cliente(Usuario):
+      def obtener_permisos(self):
+          return ['ver_catalogo', 'comprar']
+end note
+
+note right of Producto
+  **COMPOSICIÓN**
+  - Variante e Imagen NO pueden
+    existir sin Producto
+  - Si se elimina Producto,
+    se eliminan sus componentes
+  - Relación fuerte (diamante negro)
+  
+  **En el código:**
+  class Producto:
+      def __init__(self):
+          self._variantes = []  # Lista de Variante
+          self._imagenes = []   # Lista de Imagen
+end note
+
+note bottom of Carrito
+  **COMPOSICIÓN vs AGREGACIÓN**
+  - Carrito CONTIENE ItemCarrito (composición ◆)
+  - ItemCarrito USA Variante (asociación →)
+  - Variante existe independientemente
+  
+  **Diferencia clave:**
+  - Composición: parte no existe sin el todo
+  - Agregación: parte puede existir sola
+end note
+
+note top of Diseno
+  **ABSTRACCIÓN Y POLIMORFISMO**
+  - Diseno es clase abstracta
+  - Método puede_ser_publicado()
+    implementado diferente:
+  - DisenoPrivado: return False
+  - DisenoPublico: return self._aprobado
+end note
+
+note left of OBJ_ADMIN1
+  **OBJETOS/INSTANCIAS**
+  (Lo que pidió la profesora)
+  
+  Estos son ejemplos concretos
+  de las clases instanciadas.
+  
+  admin1 es una INSTANCIA de
+  la clase Administrador.
+end note
+
+' ============================================
+' LEYENDA
+' ============================================
+legend right
+  |= Símbolo |= Significado |
+  | <back:#C8E6C9>      </back> | Clases de Usuario |
+  | <back:#FFF9C4>      </back> | Clases de Producto |
+  | <back:#FFCCBC>      </back> | Clases de Pedido |
+  | <back:#F3E5F5>      </back> | Clases de Diseño |
+  | <back:#B2DFDB>      </back> | Clases 3D |
+  | <back:#FFE0B2>      </back> | Enumeraciones |
+  | <back:#E8F5E9>      </back> | Objetos/Instancias |
+  
+  **Tipos de Relaciones:**
+  ◆── Composición (diamante negro)
+  ◇── Agregación (diamante blanco)
+  ──── Asociación simple
+  ───▷ Herencia (triángulo)
+  ···> Dependencia
+  <··> Instanciación
+  
+  **Visibilidad:**
+  + Público
+  - Privado
+  # Protegido
+  
+  **Conceptos POO Aplicados:**
+  ✓ Herencia (Usuario → Admin/Cliente/Revisor)
+  ✓ Polimorfismo (obtener_permisos())
+  ✓ Encapsulamiento (atributos privados _)
+  ✓ Composición (Producto *-- Variante)
+  ✓ Agregación (Categoria o-- Producto)
+  ✓ Abstracción (Usuario, Diseno abstractas)
+  ✓ Objetos/Instancias (admin1, cliente1...)
+  
+  **Proyecto RED - Estampación**
+  SENA - ADSO Ficha 3147208
+  Noviembre 2024
+endlegend
+
+@enduml
